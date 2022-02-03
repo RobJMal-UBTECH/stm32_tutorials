@@ -54,7 +54,22 @@ static const uint8_t RANGE_REG = 0x02;
 static const uint8_t RANGE_HIGH_REG = 0x02;
 static const uint8_t RANGE_LOW_REG = 0x03;
 
-static const uint8_t RANGE_MODE_CENTIMETER = 0x51;	// range reading in [cm]
+static const uint8_t RANGE_MODE_INCH = 0x50;			// range reading in [in]
+static const uint8_t RANGE_MODE_CENTIMETER = 0x51;		// range reading in [cm]
+static const uint8_t RANGE_MODE_MICROSECONDS = 0x52;	// range reading in [microsec]
+
+static const uint32_t I2C_TIMEOUT = 5000;	// [milliseconds]
+
+uint8_t i2c_data_buf[5];
+HAL_StatusTypeDef ret;
+
+uint8_t t_gain = 0x02;	// Max gain
+double t_range = 2.0;	// Max range
+
+uint8_t high_byte;
+uint8_t low_byte;
+uint16_t distance_value;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -65,6 +80,13 @@ int _write(int fd, char* ptr, int len)
 	HAL_UART_Transmit(&huart2, (uint8_t*)ptr, len, HAL_MAX_DELAY);
 	return len;
 }
+void Read_SRF10_Firmware_Revision(uint8_t device_address);
+void Initialize_SRF10(uint8_t device_address, uint8_t max_gain, double max_range);
+HAL_StatusTypeDef SRF10_Set_Gain(uint8_t max_gain);
+HAL_StatusTypeDef SRF10_Set_Range(double max_range);
+HAL_StatusTypeDef SRF10_ReadRegister(uint8_t device_address, uint8_t register_address, uint8_t* data_buffer_ptr);
+HAL_StatusTypeDef SRF10_WriteRegister(uint8_t device_address, uint8_t register_address, uint8_t value);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -79,17 +101,6 @@ int _write(int fd, char* ptr, int len)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	uint8_t buf[5];
-	HAL_StatusTypeDef ret;
-
-	uint8_t t_gain = 0x02;	// Gain
-
-	double t_range = 2.0;	// Max range
-	uint8_t t_range_cmd = (uint8_t)((t_range-0.043)*23.26);
-
-	uint8_t high_byte;
-	uint8_t low_byte;
-	uint16_t distance_value;
 
   /* USER CODE END 1 */
 
@@ -120,54 +131,16 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-  // Want to read the firmware register
-  buf[0] = FIRMWARE_REV_REG;
-  ret = HAL_I2C_Master_Transmit(&hi2c1, SRF10_ADDR, buf, 1, 5000);
-  if (ret != HAL_OK)
+  if (HAL_I2C_IsDeviceReady(&hi2c1, SRF10_ADDR, 10, 5000) == HAL_OK)
+  {
+	  printf("Device is ready!\r\n");
+	  Read_SRF10_Firmware_Revision(SRF10_ADDR);
+	  Initialize_SRF10(SRF10_ADDR, t_gain, t_range);
+  }
+  else
   {
 	  Error_Handler();
   }
-
-  ret = HAL_I2C_Master_Receive(&hi2c1, (uint16_t)SRF10_ADDR, buf, 1, 5000);
-  if (ret != HAL_OK)
-  {
-	  Error_Handler();
-  }
-  printf("Firmware version: %d\r\n", buf[0]);
-
-  // --- Initializing sonar sensor ---
-  // Setting the gain
-  buf[0] = GAIN_REG;
-  ret = HAL_I2C_Master_Transmit(&hi2c1, SRF10_ADDR, buf, 1, 5000);
-  if (ret != HAL_OK)
-  {
-	  Error_Handler();
-  }
-
-  buf[0] = t_gain;
-  ret = HAL_I2C_Master_Transmit(&hi2c1, SRF10_ADDR, buf, 1, 5000);
-  if (ret != HAL_OK)
-  {
-	  Error_Handler();
-  }
-
-  // Setting the range
-  buf[0] = RANGE_REG;
-//  buf[1] = t_range_cmd;
-  ret = HAL_I2C_Master_Transmit(&hi2c1, SRF10_ADDR, buf, 1, 5000);
-  if (ret != HAL_OK)
-  {
-	  Error_Handler();
-  }
-
-  buf[0] = t_range_cmd;
-  ret = HAL_I2C_Master_Transmit(&hi2c1, SRF10_ADDR, buf, 1, 5000);
-  if (ret != HAL_OK)
-  {
-	  Error_Handler();
-  }
-
-  printf("Sonar initialized\r\n");
 
   while (1)
   {
@@ -175,61 +148,35 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  // Setting up to get data in centimeters
-	  buf[0] = COMMAND_REG;
-	  if (HAL_I2C_Master_Transmit(&hi2c1, (uint16_t)SRF10_ADDR, buf, 1, 5000) != HAL_OK)
+	  // Setting up to get data in microseconds
+	  if (SRF10_WriteRegister(SRF10_ADDR, COMMAND_REG, RANGE_MODE_CENTIMETER) != HAL_OK)
 	  {
-		  Error_Handler();
-	  }
-
-	  buf[0] = RANGE_MODE_CENTIMETER;
-	  if (HAL_I2C_Master_Transmit(&hi2c1, (uint16_t)SRF10_ADDR, buf, 1, 5000) != HAL_OK)
-	  {
+		  printf("Retrieving data ERROR\r\n");
 		  Error_Handler();
 	  }
 
 	  // --- Reading sensor data ---
-	  // Reading from high byte register
-	  buf[0] = RANGE_HIGH_REG;
-	  ret = HAL_I2C_Master_Transmit(&hi2c1, (uint16_t)SRF10_ADDR, buf, 1, 5000);
-	  if (ret != HAL_OK)
+	  // Adding delay until register is finished reading
+	  uint8_t command_register_value = 0xFF;
+	  while (command_register_value == 0xFF)
 	  {
-		  Error_Handler();
+		  SRF10_ReadRegister(SRF10_ADDR, COMMAND_REG, &command_register_value);
 	  }
 
-	  ret = HAL_I2C_Master_Receive(&hi2c1, (uint16_t)SRF10_ADDR, buf, 1, 5000);
-	  if (ret != HAL_OK)
+	  // Reading from high and low byte registers
+	  if (SRF10_ReadRegister(SRF10_ADDR, RANGE_HIGH_REG, &high_byte) != HAL_OK)
 	  {
+		  printf("High byte ERROR\r\n");
 		  Error_Handler();
 	  }
-	  high_byte = buf[0];
-
-
-	  // Reading from low byte register
-	  buf[0] = RANGE_LOW_REG;
-	  ret = HAL_I2C_Master_Transmit(&hi2c1, (uint16_t)SRF10_ADDR, buf, 1, 5000);
-	  if (ret != HAL_OK)
+	  if (SRF10_ReadRegister(SRF10_ADDR, RANGE_LOW_REG, &low_byte) != HAL_OK)
 	  {
+		  printf("Low byte ERROR\r\n");
 		  Error_Handler();
 	  }
-
-	  ret = HAL_I2C_Master_Receive(&hi2c1, (uint16_t)SRF10_ADDR, buf, 1, 5000);
-	  if (ret != HAL_OK)
-	  {
-		  Error_Handler();
-	  }
-	  low_byte = buf[0];
 
 	  distance_value = (((uint16_t)high_byte) << 8) + low_byte;
 	  printf("Range: %hu cm\r\n", distance_value);
-	  HAL_Delay(100);
-
-//	  // Things are going well indicator
-//	  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-//	  HAL_Delay(1000);
-//	  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-//	  HAL_Delay(1000);
-
   }
   /* USER CODE END 3 */
 }
@@ -283,6 +230,108 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
+// Reads firmware register
+void Read_SRF10_Firmware_Revision(uint8_t device_address)
+{
+	uint8_t buf[5];
+
+	// Telling to read from firmware revision register
+	SRF10_ReadRegister(device_address, FIRMWARE_REV_REG, buf);
+
+	printf("%X sonar firmware revision: %d\r\n", device_address, buf[0]);
+}
+
+/*
+ * Initializes sonar sensor at device address by initializing the
+ * gains and maximum range.
+ *
+ */
+void Initialize_SRF10(uint8_t device_address, uint8_t max_gain, double max_range)
+{
+	if (SRF10_Set_Gain(max_gain) != HAL_OK)
+	{
+		printf("Setting gain ERROR\r\n");
+		Error_Handler();
+	}
+	if (SRF10_Set_Range(max_range) != HAL_OK)
+	{
+		printf("Setting range ERROR\r\n");
+		Error_Handler();
+	}
+	printf("%X sonar initialized\r\n", device_address);
+}
+
+/*
+ * Sets the gain of the SRF10 sonar sensor.
+ *
+ */
+HAL_StatusTypeDef SRF10_Set_Gain(uint8_t max_gain)
+{
+	if (SRF10_WriteRegister(SRF10_ADDR, GAIN_REG, max_gain) != HAL_OK)
+	{
+		return HAL_ERROR;
+	}
+	return HAL_OK;
+}
+
+/*
+ * Sets the range of the SRF10 sonar sensor.
+ *
+ */
+HAL_StatusTypeDef SRF10_Set_Range(double max_range)
+{
+	// Range limits
+	if (max_range > 6.0 || max_range < 0.0)
+	{
+		max_range = 6.0;
+	}
+
+	uint8_t range_command = (uint8_t)((max_range - 0.043)*23.26);
+	if (SRF10_WriteRegister(SRF10_ADDR, RANGE_REG, range_command) != HAL_OK)
+	{
+		return HAL_ERROR;
+	}
+
+	return HAL_OK;
+}
+
+/*
+ * Reads from the register of SRF10 using I2C
+ *
+ */
+HAL_StatusTypeDef SRF10_ReadRegister(uint8_t device_address, uint8_t register_address, uint8_t* data_buffer_ptr)
+{
+	if (HAL_I2C_Master_Transmit(&hi2c1, (uint16_t)device_address, &register_address, 1, I2C_TIMEOUT) != HAL_OK)
+	{
+		return HAL_ERROR;
+	}
+
+	if (HAL_I2C_Master_Receive(&hi2c1, (uint16_t)device_address, data_buffer_ptr, 1, I2C_TIMEOUT) != HAL_OK)
+	{
+		return HAL_ERROR;
+	}
+
+	return HAL_OK;
+}
+
+/*
+ * Writes to the register of SRF10 using I2C
+ *
+ */
+HAL_StatusTypeDef SRF10_WriteRegister(uint8_t device_address, uint8_t register_address, uint8_t value)
+{
+	uint8_t command_buffer[2];
+	command_buffer[0] = register_address;
+	command_buffer[1] = value;
+
+	if (HAL_I2C_Master_Transmit(&hi2c1, (uint16_t)device_address, command_buffer, 2, I2C_TIMEOUT) != HAL_OK)
+	{
+		return HAL_ERROR;
+	}
+
+	return HAL_OK;
+}
+
 /* USER CODE END 4 */
 
 /**
@@ -296,11 +345,8 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
-	  printf("ERROR!!!\r\n");
+//	  printf("ERROR!!!\r\n");
 	  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-	  HAL_Delay(250);
-	  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(250);
   }
   /* USER CODE END Error_Handler_Debug */
 }

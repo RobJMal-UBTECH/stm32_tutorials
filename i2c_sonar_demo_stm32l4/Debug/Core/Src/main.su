@@ -1,4 +1,10 @@
-main.c:63:5:_write	24	static
-main.c:79:5:main	48	static
-main.c:241:6:SystemClock_Config	96	static
-main.c:292:6:Error_Handler	8	static,ignoring_inline_asm
+main.c:78:5:_write	24	static
+main.c:101:5:main	16	static
+main.c:189:6:SystemClock_Config	96	static
+main.c:235:6:Read_SRF10_Firmware_Revision	24	static
+main.c:250:6:Initialize_SRF10	24	static
+main.c:269:19:SRF10_Set_Gain	16	static
+main.c:282:19:SRF10_Set_Range	24	static
+main.c:303:19:SRF10_ReadRegister	24	static
+main.c:322:19:SRF10_WriteRegister	32	static
+main.c:342:6:Error_Handler	8	static,ignoring_inline_asm
