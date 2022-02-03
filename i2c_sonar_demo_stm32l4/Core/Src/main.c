@@ -46,6 +46,7 @@
 
 /* USER CODE BEGIN PV */
 static const uint8_t SRF10_ADDR = 0xE0;
+static const uint8_t SRF10_ADDR_2 = 0xE6;
 
 static const uint8_t FIRMWARE_REV_REG = 0x00;
 static const uint8_t COMMAND_REG = 0x00;
@@ -133,10 +134,22 @@ int main(void)
 
   if (HAL_I2C_IsDeviceReady(&hi2c1, SRF10_ADDR, 10, 5000) == HAL_OK)
   {
-	  printf("Device is ready!\r\n");
+	  printf("%X Device is ready!\r\n", SRF10_ADDR);
 	  Read_SRF10_Firmware_Revision(SRF10_ADDR);
 	  Initialize_SRF10(SRF10_ADDR, t_gain, t_range);
   }
+  else
+  {
+	  Error_Handler();
+  }
+
+  // Example of addressing another device on I2C bus
+  if (HAL_I2C_IsDeviceReady(&hi2c1, SRF10_ADDR_2, 10, 5000) == HAL_OK)
+    {
+  	  printf("%X Device is ready!\r\n", SRF10_ADDR_2);
+  	  Read_SRF10_Firmware_Revision(SRF10_ADDR_2);
+  	  Initialize_SRF10(SRF10_ADDR_2, t_gain, t_range);
+    }
   else
   {
 	  Error_Handler();
