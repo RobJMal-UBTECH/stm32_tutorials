@@ -1,0 +1,2 @@
+sk9822_led_driver.c:13:6:PrepareLedBuf	24	static
+sk9822_led_driver.c:33:6:WriteToLedBuf	24	static
