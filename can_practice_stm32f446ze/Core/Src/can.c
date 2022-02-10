@@ -58,7 +58,7 @@ void MX_CAN1_Init(void)
   CAN_FilterTypeDef canfilterconfig;
   canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
   canfilterconfig.FilterBank = 0;
-  canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO1;
+  canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
   canfilterconfig.FilterIdHigh = 0;
   canfilterconfig.FilterIdLow = 0;
   canfilterconfig.FilterMaskIdHigh = 0;
@@ -103,7 +103,7 @@ void MX_CAN2_Init(void)
   CAN_FilterTypeDef canfilterconfig;
 canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
 canfilterconfig.FilterBank = 0;
-canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO1;
+canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
 canfilterconfig.FilterIdHigh = 0;
 canfilterconfig.FilterIdLow = 0;
 canfilterconfig.FilterMaskIdHigh = 0;
@@ -147,8 +147,8 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
     /* CAN1 interrupt Init */
-    HAL_NVIC_SetPriority(CAN1_RX1_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(CAN1_RX1_IRQn);
+    HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
   /* USER CODE BEGIN CAN1_MspInit 1 */
 
   /* USER CODE END CAN1_MspInit 1 */
@@ -178,8 +178,8 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     /* CAN2 interrupt Init */
-    HAL_NVIC_SetPriority(CAN2_RX1_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(CAN2_RX1_IRQn);
+    HAL_NVIC_SetPriority(CAN2_RX0_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(CAN2_RX0_IRQn);
   /* USER CODE BEGIN CAN2_MspInit 1 */
 
   /* USER CODE END CAN2_MspInit 1 */
@@ -207,7 +207,7 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
     HAL_GPIO_DeInit(GPIOD, GPIO_PIN_0|GPIO_PIN_1);
 
     /* CAN1 interrupt Deinit */
-    HAL_NVIC_DisableIRQ(CAN1_RX1_IRQn);
+    HAL_NVIC_DisableIRQ(CAN1_RX0_IRQn);
   /* USER CODE BEGIN CAN1_MspDeInit 1 */
 
   /* USER CODE END CAN1_MspDeInit 1 */
@@ -231,7 +231,7 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12|GPIO_PIN_13);
 
     /* CAN2 interrupt Deinit */
-    HAL_NVIC_DisableIRQ(CAN2_RX1_IRQn);
+    HAL_NVIC_DisableIRQ(CAN2_RX0_IRQn);
   /* USER CODE BEGIN CAN2_MspDeInit 1 */
 
   /* USER CODE END CAN2_MspDeInit 1 */

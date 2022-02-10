@@ -8,11 +8,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	CAN_read(hcan, 0, RxData0);
 }
 
-void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
-	datacheck = 2;
-	CAN_read(hcan, 1, RxData1);
-}
+//void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
+//{
+//	datacheck = 2;
+//	CAN_read(hcan, 1, RxData1);
+//}
 
 void CAN_write(CAN_HandleTypeDef *hcan, uint32_t std_id, uint8_t length, uint8_t TxData[])
 {

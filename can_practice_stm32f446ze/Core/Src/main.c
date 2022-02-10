@@ -68,13 +68,13 @@ void LedSteup()
 {
 	// Activate RX FIFO for each CAN
 	HAL_CAN_Start(&hcan1);
-	if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK)
+	if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
 	{
 		Error_Handler();
 	}
 
 	HAL_CAN_Start(&hcan2);
-	if (HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO1_MSG_PENDING) != HAL_OK)
+	if (HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
 	{
 		Error_Handler();
 	}
@@ -108,7 +108,7 @@ void LedLoop()
 	// Reading the message transmitted from CAN2
 	if (CAN1_RxHeader.StdId == 0x103 && RxData[0] == 50)
 	{
-		// Blink the BLUE LED
+		// Blink the GREEN LED
 		Blink_LED("green", 500, 500);
 	}
 
@@ -133,7 +133,7 @@ void LedLoop()
 	// Reading the message transmitted from CAN1
 	if (CAN1_RxHeader.StdId == 0x446 && RxData[0] == 20)
 	{
-		// Blink the GREEN LED
+		// Blink the BLUE LED
 		Blink_LED("blue", 500, 500);
 	}
 
