@@ -31,7 +31,7 @@ void CAN_read(CAN_HandleTypeDef *hcan, uint32_t RxFIFO, uint8_t RxData[])
 {
 	if (datacheck == 1 || datacheck == 2)
 	{
-		if (HAL_CAN_GetRxMessage(hcan, RxFIFO, &RxHeader, RxData) != HAL_OK)
+		if (HAL_CAN_GetRxMessage(hcan, RxFIFO, &CAN1_RxHeader, RxData) != HAL_OK)
 		{
 			CAN_error_handler();
 		}
@@ -45,5 +45,6 @@ void CAN_error_handler(void)
 	__disable_irq();
 	while(1)
 	{
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, 1);	// Light up the red LED
 	}
 }

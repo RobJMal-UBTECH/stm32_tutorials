@@ -10,7 +10,8 @@ extern "C"
 {
 #endif
 
-extern CAN_RxHeaderTypeDef RxHeader;
+extern CAN_RxHeaderTypeDef CAN1_RxHeader;
+//extern CAN_RxHeaderTypeDef CAN2_RxHeader;
 CAN_TxHeaderTypeDef TxHeader;
 uint32_t TxMailbox;
 extern uint8_t RxData0[8];

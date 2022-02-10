@@ -50,7 +50,8 @@ uint8_t CAN1_TxData[8];
 uint8_t CAN2_TxData[8];
 uint8_t RxData0[8];
 uint8_t RxData1[8];
-CAN_RxHeaderTypeDef RxHeader;
+CAN_RxHeaderTypeDef CAN1_RxHeader;
+
 int rxfifo = -1;
 /* USER CODE END PV */
 
@@ -79,17 +80,21 @@ void LedSteup()
 	}
 }
 
+/*
+ * Sends a message over the CAN bus from CAN2 to CAN1
+ */
 void LedLoop()
 {
 	uint8_t RxData[8];
 
+	// Transmitting message over CAN2
 	CAN2_TxData[0] = 50;
 	CAN2_TxData[1] = 0xAA;
 	CAN2_TxData[2] = 0x32;
 	CAN2_TxData[3] = 0x55;
 
 	CAN_write(&hcan2, 0x103, 4, CAN2_TxData);
-	HAL_Delay(1);
+	HAL_Delay(1);	// Delay so that message can be received by nodes
 
 	if (rxfifo == 0)
 	{
@@ -100,15 +105,38 @@ void LedLoop()
 		memcpy(RxData, RxData1, sizeof(RxData1));
 	}
 
-	if (RxHeader.StdId == 0x103 && RxData[0] == 50)
+	// Reading the message transmitted from CAN2
+	if (CAN1_RxHeader.StdId == 0x103 && RxData[0] == 50)
 	{
 		// Blink the BLUE LED
-		Blink_LED("blue", 500, 500);
-
-		CAN1_TxData[0] = 20;
-		CAN1_TxData[1] = 0xAA;
-		CAN_write(&hcan1, 0x446, 2, CAN1_TxData);
+		Blink_LED("green", 500, 500);
 	}
+
+	HAL_Delay(1);
+
+	// Transmitting message over CAN1
+	CAN1_TxData[0] = 20;
+	CAN1_TxData[1] = 0xAA;
+
+	CAN_write(&hcan1, 0x446, 2, CAN1_TxData);
+	HAL_Delay(1);	// Delay so that message can be received by nodes
+
+	if (rxfifo == 0)
+	{
+		memcpy(RxData, RxData0, sizeof(RxData0));
+	}
+	else if (rxfifo == 1)
+	{
+		memcpy(RxData, RxData1, sizeof(RxData1));
+	}
+
+	// Reading the message transmitted from CAN1
+	if (CAN1_RxHeader.StdId == 0x446 && RxData[0] == 20)
+	{
+		// Blink the GREEN LED
+		Blink_LED("blue", 500, 500);
+	}
+
 	HAL_Delay(1);
 }
 
@@ -159,7 +187,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  LedLoop();
-	  HAL_Delay(2000);
+	  HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 }

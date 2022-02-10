@@ -2,4 +2,4 @@ can_task.c:5:6:HAL_CAN_RxFifo0MsgPendingCallback	16	static
 can_task.c:11:6:HAL_CAN_RxFifo1MsgPendingCallback	16	static
 can_task.c:17:6:CAN_write	24	static
 can_task.c:30:6:CAN_read	24	static
-can_task.c:43:6:CAN_error_handler	4	static,ignoring_inline_asm
+can_task.c:43:6:CAN_error_handler	8	static,ignoring_inline_asm
